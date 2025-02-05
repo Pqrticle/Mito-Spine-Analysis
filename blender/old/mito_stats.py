@@ -11,7 +11,7 @@ def nearest_spine_coords(neuron_id, mito_id):
     mito_row = mito_neuron_df.loc[mito_neuron_df.mito_id == mito_id].iloc[0]
     mito_ctr_x, mito_ctr_y, mito_ctr_z = mito_row.ctr_pos_x_vx * 0.004, mito_row.ctr_pos_y_vx * 0.004, mito_row.ctr_pos_z_vx * 0.04
 
-    with open(f'../data/jsons/{neuron_id}-spine-base-coords', 'r') as file:
+    with open(f'../data/spine_base_coords/{neuron_id}-SBC.json', 'r') as file:
         spine_base_coords = json.load(file)
 
     '''

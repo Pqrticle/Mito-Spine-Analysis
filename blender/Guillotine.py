@@ -2,6 +2,7 @@ from trimesh.proximity import ProximityQuery
 from tqdm import tqdm
 import skeletor as sk
 import numpy as np
+import json
 
 def get_branch_polylines_by_length(skeleton, min_length=1000, max_length=5000, min_nodes=5, max_nodes=30, radius_threshold=2000):
     """
@@ -164,7 +165,7 @@ def snap_marked_points_to_mesh(mesh, marked_points, snap_to="vertex"):
 
     return snapped_points
 
-def snapped_spine_base_coords(mask_filter):
+def snapped_spine_base_coords(mask_filter, neuron_id):
     #Skeletonize
     skel = sk.skeletonize.by_wavefront(mask_filter, origins=None, waves=1, step_size=1)
     print(len(skel.vertices))
@@ -177,7 +178,8 @@ def snapped_spine_base_coords(mask_filter):
     polylines, radii = get_branch_polylines_by_length(skel, min_length=1000, max_length=5000)
     marked_points = mark_at_radius(polylines, radii, mark_position="last_node")
     snapped_points = snap_marked_points_to_mesh(mask_filter, marked_points, snap_to="vertex")
-
-    # Convert each TrackedArray into a tuple
+    
+    # Save the coords
     spine_base_coords = [list(arr * 0.001) for arr in snapped_points]
-    return spine_base_coords
+    with open(f'../data/spine_base_coords/{neuron_id}-SBC.json', 'w') as file:
+                json.dump(spine_base_coords, file)

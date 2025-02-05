@@ -11,7 +11,7 @@ import json
 import time
 import random
 sys.path.append(r"C:\Users\PishosL\Mito-Spine-Analysis\blender")
-import mito_stats
+#import mito_stats
 
 def calculate_volume(obj):
     bm = bmesh.new()
@@ -30,7 +30,7 @@ neuron_id = int(sys.argv[-1])
 obj_file_path = f'../data/meshes/final_meshes/{neuron_id}-MSH.obj'  # Replace with your .obj file path
 blend_file_path = f'../data/meshes/final_blends/{neuron_id}-MSH.blend' # Replace with your desired .blend file path
 
-with open(f'../data/jsons/{neuron_id}-spine-base-coords', 'r') as file:
+with open(f'../data/spine_base_coords/{neuron_id}-SBC.json', 'r') as file:
         spine_base_coords = json.load(file)
 
 # Import neuron and mitochondria meshes
@@ -67,23 +67,21 @@ neuron_obj.select_set(False)
 combined_mito_obj = bpy.data.objects[0]
 bpy.context.view_layer.objects.active = combined_mito_obj
 bpy.ops.object.join()  # Combine mitochondria into one object
-bpy.ops.object.select_all(action='DESELECT')
 combined_mito_obj.name = 'Combined_Mito_Mesh'
+bpy.ops.object.select_all(action='DESELECT')
 
-#for mito_id in mito_list:
-'''mito_obj = bpy.data.objects.get(str(mito_id))
-    bpy.context.view_layer.objects.active = mito_obj
 
-    bpy.ops.object.modifier_add(type='SUBSURF')
-    bpy.context.object.modifiers["Subdivision"].levels = 3
-    bpy.ops.object.modifier_apply(modifier="Subdivision")
-    
-    bpy.ops.object.modifier_add(type='TRIANGULATE')
-    bpy.ops.object.modifier_apply(modifier="Triangulate")
+'''
+bpy.ops.object.modifier_add(type='SUBSURF')
+bpy.context.object.modifiers["Subdivision"].levels = 3
+bpy.ops.object.modifier_apply(modifier="Subdivision")
 
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.gamer.normal_smooth()
+bpy.ops.object.modifier_add(type='TRIANGULATE')
+bpy.ops.object.modifier_apply(modifier="Triangulate")'''
 
+#bpy.ops.object.mode_set(mode='EDIT')
+#bpy.ops.gamer.normal_smooth()
+'''
     # Calculate the mesh curvatures
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.gamer.compute_curvatures()
@@ -102,6 +100,7 @@ combined_mito_obj.name = 'Combined_Mito_Mesh'
     spine_x, spine_y, spine_z = mito_stats.nearest_spine_coords(neuron_id, mito_id)
     mito_stats.curves_within_sphere(curvature_and_coords, spine_x, spine_y, spine_z)'''
 
+'''
 num = 1
 intersected_mito_volumes = []
 for base_coords in spine_base_coords:
@@ -140,13 +139,13 @@ for base_coords in spine_base_coords:
         intersected_mito_volume = 0
     intersected_mito_volumes.append(intersected_mito_volume)
     print(f'{sphere_obj.name} Volume: {intersected_mito_volume}')
-    time.sleep(2)
+    time.sleep(1)
 
 
 json_dict = {neuron_id: intersected_mito_volumes}
 
 try:
-    with open("../data/jsons/test-3.json", "r") as file: 
+    with open("../data/jsons/new-mito-spine-volumes.json", "r") as file: 
         data = json.load(file)
     data.update(json_dict)
     json_dict = data
@@ -154,11 +153,29 @@ except:
     pass
 
 # Write the updated data back to the JSON file
-with open("../data/jsons/test-3.json", "w") as file:
-    json.dump(json_dict, file, indent=4)  # U
+with open("../data/jsons/new-mito-spine-volumes.json", "w") as file:
+    json.dump(json_dict, file, indent=4)'''
 
 
+temp_json_dict = {neuron_id: calculate_volume(combined_mito_obj)}
+# Write the updated data back to the JSON file
+print(temp_json_dict)
+
+try:
+    with open("../data/jsons/new-combined-mito-volumes.json", "r") as file: 
+        data = json.load(file)
+    data.update(temp_json_dict)
+    temp_json_dict = data
+except:
+    pass
+    print('fail')
+
+with open("../data/jsons/new-combined-mito-volumes.json", "w") as file:
+    json.dump(temp_json_dict, file, indent=4)
+
+
+'''
 # Save the blender file
 bpy.ops.object.mode_set(mode='OBJECT')
 bpy.ops.wm.save_as_mainfile(filepath=blend_file_path)
-print("Imported and saved the .blend file successfully.")
+print("Imported and saved the .blend file successfully.")'''

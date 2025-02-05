@@ -3,6 +3,11 @@ import random
 import matplotlib.pyplot as plt
 import pickle
 
+
+
+
+#ACTIVITY CLUSTERING DIAGRAM, SHOWS THE SPIKES OF ALL THE CELLS
+
 # Load your calcium trace data (adjust the file path as necessary)
 with open("../data/calcium_trace.pkl", "rb") as f:
     ca_trace = pickle.load(f)

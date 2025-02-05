@@ -3,14 +3,20 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import pickle
 import random
+import pandas as pd
 
-# Load your calcium trace data (adjust the file path as necessary)
+#change name of the file to calcium_activity.py
+
+
+mito_data = pd.read_csv('../data/pni_mito_analysisids_fullstats.csv')
 with open("../data/calcium_trace.pkl", "rb") as f:
     ca_trace = pickle.load(f)
 
-def activity_levels():
+def activity_levels(): #the clustering function
     calcium_nonzero_counts = {}
-    ids = list(ca_trace.keys())
+    calcium_ids = [int(key) for key in ca_trace]
+
+    ids = mito_data[mito_data.cellid.isin(calcium_ids)].cellid.unique().tolist()
 
     for neuron_id in ids:
         calcium_nonzero_counts[neuron_id] = np.sum(ca_trace[neuron_id]["spike"] > 0)
@@ -29,6 +35,16 @@ def activity_levels():
 
     return low_activity_levels, high_activity_levels    
  
+
+def sum_spike_probability(neuron_id):
+    filtered_synapse_data = pd.read_csv('../data/filtered_synapse_data.csv')
+    matching_rows = filtered_synapse_data[filtered_synapse_data['post_root_id'] == neuron_id]
+
+    matching_rows.loc[:, 'pre_root_calcium_probability'] = matching_rows['pre_root_id'].apply(lambda pre_root_id: np.sum(ca_trace[pre_root_id]["spike"]) if pre_root_id in ca_trace else 'N/A')
+    matching_rows.loc[:, 'post_root_calcium_probability'] = np.sum(ca_trace[neuron_id]["spike"]) if neuron_id in ca_trace else 'N/A'
+
+    filtered_synapse_data.to_csv('../data/filtered_synapse_data.csv', index=False)
+    print(matching_rows)
 '''
 jitter_low = [random.uniform(-0.1, 0.1) for _ in range(len(nonzero_counts))]
 jitter_high = [random.uniform(-0.1, 0.1) for _ in range(len(nonzero_counts))]
