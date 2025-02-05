@@ -2,6 +2,9 @@ import pickle
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import activity_clustering
+
+low_activity_levels, high_activity_levels = activity_clustering.activity_levels()
 
 # Open the pickle file in 'rb' (read binary) mode
 with open('../data/calcium_trace.pkl', 'rb') as file:
@@ -10,23 +13,45 @@ with open('../data/calcium_trace.pkl', 'rb') as file:
 raw_mito_data = pd.read_csv('../data/pni_mito_analysisids_fullstats.csv')
 raw_branch_data = pd.read_csv('../data/distancebinfullstats.csv')
 
-mito_volumes = {}
+high_activity_mito_volumes = {}
 mito_volume_densities = {}
 mito_linear_coverage = {}
 compartment_map = {'Axonal': 0, 'Basal': 1, 'Apical': 2}
-
+c = 0
 for neuron_id in data.keys():
-    if neuron_id in raw_mito_data.cellid.values:
+    #if neuron_id in raw_mito_data.cellid.values:
+    try:
         mito_df = raw_mito_data.loc[raw_mito_data.cellid == neuron_id]
         for index, mito in mito_df.iterrows():
             compartment = mito.compartment
             volume = mito.mito_vx
             if compartment in compartment_map:
-                if neuron_id in mito_volumes:
-                    mito_volumes[neuron_id][compartment_map[compartment]] += volume
+                if neuron_id in high_activity_levels:
+                    high_activity_mito_volumes[neuron_id][compartment_map[compartment]] += volume
                 else:
-                    mito_volumes.setdefault(neuron_id, [0, 0, 0])[compartment_map[compartment]] = volume
+                    high_activity_mito_volumes.setdefault(neuron_id, [0, 0, 0])[compartment_map[compartment]] = volume
+    except:
+        c += 1
+print(c)
 
+
+print(len(high_activity_mito_volumes))
+
+
+
+
+
+#of 108 calcium neurons, only 86 have mito volume data
+
+
+
+
+
+
+
+
+
+'''
 for neuron_id in data.keys():
     if neuron_id in raw_branch_data.cellid.values:
         branch_df = raw_branch_data.loc[raw_branch_data.cellid == neuron_id]
@@ -89,4 +114,4 @@ plt.grid(axis='y', linestyle='--')
 
 # Show the plot
 plt.tight_layout()
-plt.show()
+plt.show()'''
