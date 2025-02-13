@@ -24,9 +24,13 @@ if request == 0:
     high_activity_neurons = random.sample(list(high_activity_levels), 22)
     selected_neuron_ids = low_activity_neurons + high_activity_neurons'''
 
-run_blender = False
 
-if __name__ == '__main__':
+def run_blender(neuron_id):
+    subprocess.run(["cmd", "/c", r"C:\Program Files\Blender-2.93-CellBlender\blender.exe", "--python", r"C:\Users\PishosL\Mito-Spine-Analysis\blender\mito_blender.py", 
+                    "--background", 
+                    "--", str(neuron_id)])
+
+def process_neurons():
     neuron_seg_source = "precomputed://https://storage.googleapis.com/microns_public_datasets/pinky100_v185/seg"
     mito_seg_source = "precomputed://https://td.princeton.edu/sseung-archive/pinky100-mito/seg_191220"
     neuron_mesh_dir = '../data/meshes/neuron_meshes/'  # Neurons preloaded locally
@@ -79,9 +83,8 @@ if __name__ == '__main__':
         scene.export(neuron_obj_path)
         print(f"Saved combined mesh to {neuron_obj_path}")
 
-        # Run Blender with the provided Python script
-        if run_blender:
-            subprocess.run(["cmd", "/c", r"C:\Program Files\Blender-2.93-CellBlender\blender.exe", "--python", r"C:\Users\PishosL\Mito-Spine-Analysis\blender\mito_blender.py", 
-                    "--background", 
-                    "--", str(neuron_id)])
+        #run_blender(neuron_id)
     print(f'Number of Neurons Completed (current analysis): {num}')
+
+if __name__ == '__main__':
+    process_neurons()
