@@ -8,6 +8,8 @@ def match_coords(neuron_id):
         spine_bases = np.array(json.load(file))
     
     matching_rows = filtered_synapse_data[filtered_synapse_data['post_root_id'] == neuron_id]
+    print('Initial Table:')
+    print(matching_rows)
     if matching_rows.empty:
         return
     psd_coords = np.array(matching_rows['psd_coords'].apply(json.loads).tolist(), dtype=np.float64)

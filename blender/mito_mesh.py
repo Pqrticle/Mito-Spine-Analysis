@@ -6,10 +6,11 @@ import pandas as pd
 import json
 import os
 import random
-import activity_clustering
+import calcium_activity
 import Guillotine
 import coordinate_matching
 import mito_detection
+import orientation_direction_tuning
 
 '''
 request = int(input('Select the type of analysis: '))
@@ -23,15 +24,9 @@ if request == 0:
     high_activity_neurons = random.sample(list(high_activity_levels), 22)
     selected_neuron_ids = low_activity_neurons + high_activity_neurons'''
 
-mark_bases = True
 run_blender = False
-pipline = True
-detect_mito = True
-activity = True
-
 
 if __name__ == '__main__':
-    raw_mito_data = pd.read_csv('../data/pni_mito_analysisids_fullstats.csv')
     neuron_seg_source = "precomputed://https://storage.googleapis.com/microns_public_datasets/pinky100_v185/seg"
     mito_seg_source = "precomputed://https://td.princeton.edu/sseung-archive/pinky100-mito/seg_191220"
     neuron_mesh_dir = '../data/meshes/neuron_meshes/'  # Neurons preloaded locally
@@ -54,35 +49,24 @@ if __name__ == '__main__':
             neuron_mesh = mm.mesh(seg_id=neuron_id, remove_duplicate_vertices=True)
             neuron_mesh.add_link_edges(seg_id=neuron_id, client=client.chunkedgraph)
             print(f"Neuron mesh loaded: {neuron_mesh.n_vertices} vertices, {neuron_mesh.n_faces} faces")
-            if mark_bases and f"{neuron_id}-SBC.json" not in os.listdir('../data/spine_base_coords'):
+            if f"{neuron_id}-SBC.json" not in os.listdir('../data/spine_base_coords'):
                 comp_mask = mesh_filters.filter_largest_component(neuron_mesh) #quotes at the start of this line
                 mask_filter = neuron_mesh.apply_mask(comp_mask)
                 Guillotine.snapped_spine_base_coords(mask_filter, neuron_id) #quotes here
         except ValueError:
             print(f'No mesh could be found for Neuron SegID: {neuron_id}')
 
-        if pipline:
-            status = coordinate_matching.match_coords(neuron_id)
-            if status is None:
-                detect_mito = False
-                print(f'Neuron {neuron_id} not found in filtered synapse table')
+        status = coordinate_matching.match_coords(neuron_id)
+        if status is None:
+            print(f'Neuron {neuron_id} not found in filtered synapse table')
+            break
 
+        mito_meshes = mito_detection.generate_mito_meshes(neuron_id, mito_mm, mito_mesh_dir)
+        mito_detection.detect_nearby_mito(neuron_id, mito_meshes)
 
-        # Filter for mito within dendrites of the neuron
-        all_mito_df = raw_mito_data[raw_mito_data.cellid == neuron_id]
-        dendritic_mito_df = all_mito_df[all_mito_df.compartment.isin(['Basal', 'Apical', 'Unknown dendritic'])]
-        mito_ids = dendritic_mito_df.mito_id.tolist()
-
-        # Determine if mito are already cached
-        mito_meshes = {}
-        for mito_id in mito_ids:
-            mito_id_path = f'{mito_mesh_dir}/{mito_id}.h5'
-            if not os.path.exists(mito_id_path):
-                mito_mesh = mito_mm.mesh(seg_id=mito_id, remove_duplicate_vertices=True)
-                print(f"Loaded mitochondria mesh: {mito_id}")
-            else:
-                mito_mesh = mito_mm.mesh(filename=mito_id_path)
-            mito_meshes[mito_id] = mito_mesh
+        calcium_activity.sum_spike_probability(neuron_id)
+        
+        orientation_direction_tuning.osi_dsi_tuning(neuron_id)
 
         # Combine and name all meshes within a scene to be saved as separate objects in the OBJ file
         scene = trimesh.Scene()
@@ -95,17 +79,9 @@ if __name__ == '__main__':
         scene.export(neuron_obj_path)
         print(f"Saved combined mesh to {neuron_obj_path}")
 
-        if detect_mito:
-            mito_detection.detect_nearby_mito(neuron_id, mito_meshes)
-
-        if activity:
-            activity_clustering.sum_spike_probability(neuron_id)
-
         # Run Blender with the provided Python script
         if run_blender:
             subprocess.run(["cmd", "/c", r"C:\Program Files\Blender-2.93-CellBlender\blender.exe", "--python", r"C:\Users\PishosL\Mito-Spine-Analysis\blender\mito_blender.py", 
                     "--background", 
                     "--", str(neuron_id)])
     print(f'Number of Neurons Completed (current analysis): {num}')
-
-    
