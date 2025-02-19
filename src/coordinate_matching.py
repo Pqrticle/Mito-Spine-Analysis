@@ -54,6 +54,8 @@ filtered_synapse_data = filtered_synapse_data.drop(columns=['ctr_pt_x_nm', 'ctr_
 filtered_synapse_data = filtered_synapse_data.drop(columns=['post_pos_x_vx', 'post_pos_y_vx', 'post_pos_z_vx'])
 filtered_synapse_data = filtered_synapse_data.drop(columns=['pre_pos_x_vx', 'pre_pos_y_vx', 'pre_pos_z_vx'])
 filtered_synapse_data = filtered_synapse_data.drop(columns=['ctr_pos_x_vx', 'ctr_pos_y_vx', 'ctr_pos_z_vx'])
+filtered_synapse_data = filtered_synapse_data.drop(columns=['Activity'])
+
 
 # Optionally, save the updated DataFrame back to a CSV file
 filtered_synapse_data.to_csv('../data/simply_filtered_synapse_data.csv', index=False)

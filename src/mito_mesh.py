@@ -3,6 +3,7 @@ from caveclient import CAVEclient
 import trimesh
 import subprocess
 import pandas as pd
+import shutil
 import json
 import os
 import random
@@ -70,7 +71,7 @@ def process_neurons():
 
         calcium_activity.sum_spike_probability(neuron_id)
         
-        orientation_direction_tuning.osi_dsi_tuning(neuron_id)
+        orientation_direction_tuning.start(neuron_id)
 
         # Combine and name all meshes within a scene to be saved as separate objects in the OBJ file
         scene = trimesh.Scene()
@@ -87,4 +88,5 @@ def process_neurons():
     print(f'Number of Neurons Completed (current analysis): {num}')
 
 if __name__ == '__main__':
+    shutil.copyfile("../data/simply_filtered_synapse_data.csv", "../data/filtered_synapse_data.csv") #only temp
     process_neurons()

@@ -151,15 +151,27 @@ def permutation_test(amp_arr, n_shuff, mode="dsi"):
         
   return p
 
-def osi_dsi_tuning(neuron_id):
+def get_stimlab_scan_id(neuron_id):
+    neuron_id_list = EASETuning["segment_id"]
+    scan_list = EASETuning["scan_id"]
+
+    scan_indices = neuron_id_list == neuron_id
+    if np.any(scan_indices):  # Checks if there's at least one True value in the condition
+      scan_id = int(scan_list[scan_indices][0])
+    else:
+      return None, None
+
+    stimlab = get_stim_label(Stimulus, scan_id)
+    return stimlab, scan_id
+  
+def osi_dsi_tuning(neuron_id, idx, type):
   filtered_synapse_data = pd.read_csv('../data/filtered_synapse_data.csv')
 
-  neuron_id_list = EASETuning["segment_id"]
-  scan_list = EASETuning["scan_id"]
-  scan_id = int(scan_list[neuron_id_list==neuron_id])
-  trace = get_trace(EASETrace, neuron_id, scan_id, "trace_raw")
-  stimlab = get_stim_label(Stimulus, scan_id)
+  stimlab, scan_id = get_stimlab_scan_id(neuron_id)
+  if scan_id is None:
+    return
   
+  trace = get_trace(EASETrace, neuron_id, scan_id, "trace_raw")
   response_array = get_peakamp_tdarray(trace, stimlab)
   tune = tuning_curve(response_array)
   
@@ -173,6 +185,7 @@ def osi_dsi_tuning(neuron_id):
       if value not in angles:
           angles.append(value)
   print(angles)
+  print(stimlab, len(stimlab))
 
   orientation_ind = np.argmax(tune)
   best_orientation = angles[orientation_ind]  # Find direction with max response
@@ -182,14 +195,169 @@ def osi_dsi_tuning(neuron_id):
   else:
     osi_activity = 'Low'
 
-  mask = filtered_synapse_data['post_root_id'] == neuron_id
-  filtered_synapse_data.loc[mask, 'osi'] = osi
-  filtered_synapse_data.loc[mask, 'osi_p'] = osi_pvalue
-  filtered_synapse_data.loc[mask, 'dsi'] = dsi
-  filtered_synapse_data.loc[mask, 'dsi_p'] = dsi_pvalue
-  filtered_synapse_data.loc[mask, 'scan'] = scan_id
-  filtered_synapse_data.loc[mask, 'osi_activity'] = osi_activity
-  filtered_synapse_data.loc[mask, 'orientation_angle'] = best_orientation  
+  if idx == None:
+    idx = filtered_synapse_data['post_root_id'] == neuron_id
   
+  filtered_synapse_data.loc[idx, f'{type}osi'] = osi
+  filtered_synapse_data.loc[idx, f'{type}osi_p'] = osi_pvalue
+  filtered_synapse_data.loc[idx, f'{type}dsi'] = dsi
+  filtered_synapse_data.loc[idx, f'{type}dsi_p'] = dsi_pvalue
+  filtered_synapse_data.loc[idx, f'{type}scan'] = scan_id
+  filtered_synapse_data.loc[idx, f'{type}osi_activity'] = osi_activity
+  filtered_synapse_data.loc[idx, f'{type}orientation_angle'] = best_orientation
+
+  print(filtered_synapse_data.loc[idx])
+  filtered_synapse_data.to_csv('../data/filtered_synapse_data.csv', index=False)
+
+def start(neuron_id):
+  filtered_synapse_data = pd.read_csv('../data/filtered_synapse_data.csv')
+  matching_rows = filtered_synapse_data[filtered_synapse_data['post_root_id'] == neuron_id]
+  
+  for idx, row in matching_rows.iterrows():
+    pre_root_id = row['pre_root_id']
+    osi_dsi_tuning(pre_root_id, idx, 'pre_')
+  
+  osi_dsi_tuning(neuron_id, None, 'post_')
+
+  filtered_synapse_data = pd.read_csv('../data/filtered_synapse_data.csv')
   matching_rows = filtered_synapse_data[filtered_synapse_data['post_root_id'] == neuron_id]
   print(matching_rows)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def old_osi_dsi_tuning(neuron_id):
+  # Read data once at the beginning
+  filtered_synapse_data = pd.read_csv('../data/filtered_synapse_data.csv')
+
+  # Get scan_id for the provided neuron_id
+  neuron_id_list = EASETuning["segment_id"]
+  scan_list = EASETuning["scan_id"]
+  scan_id = int(scan_list[neuron_id_list == neuron_id])
+
+  # Get the stimulus labels and trace for the post-root neuron
+  trace = get_trace(EASETrace, neuron_id, scan_id, "trace_raw")
+  stimlab = get_stim_label(Stimulus, scan_id)
+  
+  # Calculate tuning curve and other values for the post_root neuron
+  response_array = get_peakamp_tdarray(trace, stimlab)
+  tune = tuning_curve(response_array)
+  
+  dsi = get_dsi(tune)
+  osi = get_osi(tune)
+  dsi_pvalue = permutation_test(response_array, 10000, "dsi")
+  osi_pvalue = permutation_test(response_array, 10000, "osi")
+  
+  # Determine the best orientation
+  angles = []
+  for value in stimlab[~np.isnan(stimlab)]:
+    if value not in angles:
+      angles.append(value)
+  orientation_ind = np.argmax(tune)
+  best_orientation = angles[orientation_ind]
+
+  osi_activity = 'High' if osi > 0.5 and osi_pvalue < 0.01 else 'Low'
+
+  # Process rows for pre-root neurons
+  def process_pre_root(pre_root_id, idx):
+    # Check if trace exists for the pre_root_id
+    try:
+      scan_list = EASETuning["scan_id"]
+      scan_id = int(scan_list[neuron_id_list == pre_root_id])
+      pre_trace = get_trace(EASETrace, pre_root_id, scan_id, "trace_raw")
+    except:
+      # If no trace data exists, assign np.nan to all pre-root related columns
+      filtered_synapse_data.loc[idx, 'pre_osi'] = np.nan
+      filtered_synapse_data.loc[idx, 'pre_osi_p'] = np.nan
+      filtered_synapse_data.loc[idx, 'pre_dsi'] = np.nan
+      filtered_synapse_data.loc[idx, 'pre_dsi_p'] = np.nan
+      filtered_synapse_data.loc[idx, 'pre_scan'] = np.nan
+      filtered_synapse_data.loc[idx, 'pre_osi_activity'] = np.nan
+      filtered_synapse_data.loc[idx, 'pre_orientation_angle'] = np.nan
+      return
+    
+    # If trace data exists, proceed with the calculation
+    pre_stimlab = get_stim_label(Stimulus, scan_id)
+    pre_response_array = get_peakamp_tdarray(pre_trace, pre_stimlab)
+    pre_tune = tuning_curve(pre_response_array)
+    
+    pre_dsi = get_dsi(pre_tune)
+    pre_osi = get_osi(pre_tune)
+    pre_dsi_pvalue = permutation_test(pre_response_array, 10000, "dsi")
+    pre_osi_pvalue = permutation_test(pre_response_array, 10000, "osi")
+    
+    # Determine pre_orientation
+    pre_angles = []
+    for value in stimlab[~np.isnan(stimlab)]:
+      if value not in angles:
+        pre_angles.append(value)
+    pre_orientation_ind = np.argmax(pre_tune)
+    pre_best_orientation = pre_angles[pre_orientation_ind]
+
+    pre_osi_activity = 'High' if pre_osi > 0.5 and pre_osi_pvalue < 0.01 else 'Low'
+
+    # Update pre-root columns for the current row
+    filtered_synapse_data.loc[idx, 'pre_osi'] = pre_osi
+    filtered_synapse_data.loc[idx, 'pre_osi_p'] = pre_osi_pvalue
+    filtered_synapse_data.loc[idx, 'pre_dsi'] = pre_dsi
+    filtered_synapse_data.loc[idx, 'pre_dsi_p'] = pre_dsi_pvalue
+    filtered_synapse_data.loc[idx, 'pre_scan'] = scan_id
+    filtered_synapse_data.loc[idx, 'pre_osi_activity'] = pre_osi_activity
+    filtered_synapse_data.loc[idx, 'pre_orientation_angle'] = pre_best_orientation
+
+  # Loop through matching rows and process for pre-root neurons
+  matching_rows = filtered_synapse_data[filtered_synapse_data['post_root_id'] == neuron_id]
+  for idx, row in matching_rows.iterrows():
+    pre_root_id = row['pre_root_id']
+    process_pre_root(pre_root_id, idx)
+
+  # Update post-root columns in the DataFrame
+  post_mask = filtered_synapse_data['post_root_id'] == neuron_id
+  filtered_synapse_data.loc[post_mask, 'post_osi'] = osi
+  filtered_synapse_data.loc[post_mask, 'post_osi_p'] = osi_pvalue
+  filtered_synapse_data.loc[post_mask, 'post_dsi'] = dsi
+  filtered_synapse_data.loc[post_mask, 'post_dsi_p'] = dsi_pvalue
+  filtered_synapse_data.loc[post_mask, 'post_scan'] = scan_id
+  filtered_synapse_data.loc[post_mask, 'post_osi_activity'] = osi_activity
+  filtered_synapse_data.loc[post_mask, 'post_orientation_angle'] = best_orientation
+
+  matching_rows = filtered_synapse_data[filtered_synapse_data['post_root_id'] == neuron_id]
+  print(matching_rows)
+
+  # Save the updated dataframe
+  filtered_synapse_data.to_csv('../data/filtered_synapse_data.csv', index=False)
