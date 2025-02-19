@@ -32,6 +32,7 @@ def run_blender(neuron_id):
                     "--", str(neuron_id)])
 
 def process_neurons():
+    filtered_synapse_data = pd.read_csv('../data/filtered_synapse_data.csv')
     neuron_seg_source = "precomputed://https://storage.googleapis.com/microns_public_datasets/pinky100_v185/seg"
     mito_seg_source = "precomputed://https://td.princeton.edu/sseung-archive/pinky100-mito/seg_191220"
     neuron_mesh_dir = '../data/meshes/neuron_meshes/'  # Neurons preloaded locally
@@ -45,8 +46,9 @@ def process_neurons():
     client = CAVEclient('pinky_sandbox')
 
     num = 0
-    neurons_list = [648518346349538239]
-    for neuron_id in neurons_list:
+    #neuron_list = [648518346349538239]
+    neuron_list = filtered_synapse_data["post_root_id"].unique().tolist()
+    for neuron_id in neuron_list:
         neuron_id = int(neuron_id)
         print(f'Processing Neuron ID: {neuron_id}')
         num += 1
@@ -85,6 +87,8 @@ def process_neurons():
         print(f"Saved combined mesh to {neuron_obj_path}")
 
         #run_blender(neuron_id)
+    import temp
+    temp.graph()
     print(f'Number of Neurons Completed (current analysis): {num}')
 
 if __name__ == '__main__':
