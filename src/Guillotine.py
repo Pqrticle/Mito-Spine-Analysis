@@ -137,12 +137,7 @@ def snap_spine_bases(neuron_id, neuron_mesh):
     print(df_bases)
 
     output_path = '../data/synapse_table.csv'
-
-    # Check if file already exists
     write_header = not os.path.exists(output_path)
-
-    # Append mode with header only if file doesn't exist
     df_bases.to_csv(output_path, mode='a', header=write_header, index=False)
-    
     max_row = df_bases.loc[df_bases['distance'].idxmax()]
     print(max_row)
