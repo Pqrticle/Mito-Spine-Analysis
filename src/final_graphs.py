@@ -303,4 +303,108 @@ def New_OSI_Unnormalized_Mito_Near_Spine_10():
     plt.show()
 
     stats(high_volumes, low_volumes)
-New_OSI_Unnormalized_Mito_Near_Spine_10()
+
+
+def DSI_Unnormalized_Mito_Near_Spine_24():
+    # Load OSI data
+    with open("../data/mito_volume_data_r=1.json", "r") as f:
+        mito_data = json.load(f)
+
+    high_volumes = []
+    low_volumes = []
+    dsi_volume_pairs = []
+
+    for neuron_id, values in mito_data.items():
+        dsi = values[1]
+        spine_volumes = values[4]
+        spine_volumes = [float(v) for v in spine_volumes if v != "NaN" and v!= 0]
+        dsi_volume_pairs.append((dsi, spine_volumes))
+
+    dsi_volume_pairs.sort(key=lambda x: x[0])  # ascending
+
+    low_volumes = []
+    for _, vols in dsi_volume_pairs[:12]:
+        low_volumes.extend(vols)
+
+    high_volumes = []
+    for _, vols in dsi_volume_pairs[-12:]:
+        high_volumes.extend(vols)
+
+    # Sort data for cumulative probability
+    high_volumes.sort()
+    low_volumes.sort()
+
+    # Compute cumulative probabilities
+    high_cdf = np.linspace(0, 1, len(high_volumes))
+    low_cdf = np.linspace(0, 1, len(low_volumes))
+
+    # Plot cumulative probability graph
+    plt.figure(figsize=(8, 6))
+    plt.plot(high_volumes, high_cdf, label="High DSI", color='r')
+    plt.plot(low_volumes, low_cdf, label="Low DSI", color='gray')
+
+    plt.xlabel("Mitochondrial Volume Near Spines")
+    plt.ylabel("Cumulative Probability")
+    plt.title("Cumulative Probability of Unnormalized Mitochondrial Volume Near Spines by DSI Activity Level (r=1)")
+    plt.legend()
+    plt.grid(True)
+
+    # Show plot
+    plt.show()
+
+    stats(high_volumes, low_volumes)
+
+
+def DSI_Dendritic_Mito():
+    with open("../data/mito_volume_data_r=1.json", "r") as f:
+        mito_data = json.load(f)
+    
+    
+    high_volumes = []
+    low_volumes = []
+    dsi_volume_pairs = []
+
+    for neuron_id, values in mito_data.items():
+        dsi = values[1]
+        dendritic_volume = values[2]
+        dendritic_mito_volume = values[3]
+        dsi_volume_pairs.append((dsi, dendritic_mito_volume / dendritic_volume))  # Use mito volume
+
+    # Sort by DSI
+    dsi_volume_pairs.sort(key=lambda x: x[0])
+
+    # Bottom 12 DSI → Low OSI group
+    low_volumes = [vol for _, vol in dsi_volume_pairs[:12]]
+
+    # Top 12 DSI → High OSI group
+    high_volumes = [vol for _, vol in dsi_volume_pairs[-12:]]
+
+    # Sort for display purposes
+    low_volumes.sort()
+    high_volumes.sort()
+
+    # Box plot data
+    data_to_plot = [low_volumes, high_volumes]
+
+    # Create the boxplot
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.boxplot(data_to_plot, labels=["Low DSI", "High DSI"])  # no patch_artist
+
+    # Overlay individual data points
+    ax.scatter([1] * len(low_volumes), low_volumes, color='gray', alpha=0.7, label="Low DSI Neurons")
+    ax.scatter([2] * len(high_volumes), high_volumes, color='red', alpha=0.7, label="High DSI Neurons")
+
+    # Labels and title
+    ax.set_ylabel("Total Dendritic Mito Volume (Normalized)")
+    ax.set_title("Box Plot of Dendritic Mito Volumes by Normalized DSI Activity Level")
+
+    # Show only horizontal grid lines behind
+    ax.yaxis.grid(True, linestyle='--', linewidth=0.5)
+    ax.set_axisbelow(True)  # ensures grid lines are behind the boxplot
+    ax.xaxis.grid(False)    # no vertical grid lines
+
+    ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+DSI_Dendritic_Mito()

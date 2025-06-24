@@ -55,7 +55,7 @@ def find_intersected_volumes(nearby_mito_ids, mito_meshes, base_coord, radius):
     return intersected_volumes, total_intersected_volume
 
 mito_volume_data = {}
-def detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, radius):
+def detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, dsi, radius):
     synapse_table = pd.read_csv('../data/synapse_table.csv')
     synapse_df = synapse_table[synapse_table['post_root_id'] == neuron_id]
     spine_bases = synapse_df['base_coords'].apply(json.loads).tolist()
@@ -95,9 +95,10 @@ def detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, radius):
         synapse_table.loc[synapse_index, 'intersected_volumes'] = intersected_volumes
         synapse_table.loc[synapse_index, 'total_intersected_volume'] = [total_intersected_volume]
         synapse_table.loc[synapse_index, 'osi_value'] = [osi]
-    
+        synapse_table.loc[synapse_index, 'dsi_value'] = [dsi]
+
     dendritic_volume = dendrite_identifier.calculate_dendritic_volume(neuron_id, neuron_mesh)
-    mito_volume_data[neuron_id] = [osi, dendritic_volume, combined_mito_volume, spine_base_volumes]
+    mito_volume_data[neuron_id] = [osi, dsi, dendritic_volume, combined_mito_volume, spine_base_volumes]
     with open(f'../data/mito_volume_data_r={radius}.json', 'w') as jsonfile:
         json.dump(mito_volume_data, jsonfile, indent=4)
     
