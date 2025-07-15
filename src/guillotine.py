@@ -62,17 +62,12 @@ def link_base_synapse(polylines, radii, filt_df_synapse, neuron_id, max_distance
     - Finds the closest synapse to the first node.
     - Computes a base point at a radius from the last node.
     - Drops entries where synapse is more than max_distance_nm from the first node.
-    
+
     Returns a DataFrame with:
     base_id, base_x, base_y, base_z,
     post_pos_x_vx, post_pos_y_vx, post_pos_z_vx, synapse_id, distance_to_synapse
     """
-    
     neuron_synapses = filt_df_synapse[filt_df_synapse["post_root_id"] == neuron_id].copy()
-    if neuron_synapses.empty:
-        print(f"No synapses found for neuron {neuron_id}")
-        return pd.DataFrame()
-
     syn_coords = neuron_synapses[["post_pos_x_vx", "post_pos_y_vx", "post_pos_z_vx"]].values
     syn_tree = cKDTree(syn_coords)
 
@@ -119,7 +114,7 @@ def link_base_synapse(polylines, radii, filt_df_synapse, neuron_id, max_distance
             ]),
             "distance": dist
         })
-    
+
     return pd.DataFrame(results)
 
 def snap_spine_bases(neuron_id, neuron_mesh):
@@ -127,17 +122,15 @@ def snap_spine_bases(neuron_id, neuron_mesh):
     filt_df_synapse["post_pos_x_vx"] *= 0.004
     filt_df_synapse["post_pos_y_vx"] *= 0.004
     filt_df_synapse["post_pos_z_vx"] *= 0.04
-    
+
     skel = sk.skeletonize.by_wavefront(neuron_mesh, origins=None, waves=1, step_size=1)
     sk.post.remove_bristles(skel, los_only=False, inplace=True)
     sk.post.clean_up(skel, inplace=True, theta=1)
 
     polylines, radii = get_branch_polylines_by_length(skel, min_length=1, max_length=5)
     df_bases = link_base_synapse(polylines, radii, filt_df_synapse, neuron_id, max_distance_nm=1.5)
-    print(df_bases)
+    print('Marked spine base coordinates')
 
     output_path = '../data/synapse_table.csv'
     write_header = not os.path.exists(output_path)
     df_bases.to_csv(output_path, mode='a', header=write_header, index=False)
-    max_row = df_bases.loc[df_bases['distance'].idxmax()]
-    print(max_row)

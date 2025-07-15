@@ -34,7 +34,6 @@ def resolve_duplicate_nonmanifold_edges(mesh, tol=1e-2):
     nonmanifold_edges = mesh.edges_unique[nonmanifold_mask]
 
     if len(nonmanifold_edges) == 0:
-        print("No non-manifold edges found.")
         return mesh.copy()
 
     # Step 2: Compute edge midpoints
@@ -66,11 +65,6 @@ def resolve_duplicate_nonmanifold_edges(mesh, tol=1e-2):
     groups = defaultdict(list)
     for idx in range(len(parent)):
         groups[find(idx)].append(idx)
-
-    print(f"Found {len(groups)} groups of redundant non-manifold edges (within {tol} nm):")
-    for k, g in groups.items():
-        if len(g) > 1:
-            print(f"  Group {k}: edges {g}")
 
     # Step 5: Create vertex remap dictionary
     edge_to_vertex = {}
@@ -112,19 +106,19 @@ def calculate_dendritic_volume(neuron_id, neuron_mesh):
     cleaned_sphere = merged_sphere.submesh([valid_faces_mask], append=True, repair=False)
     
     final_sphere_mesh = resolve_duplicate_nonmanifold_edges(cleaned_sphere, tol=1e-1)
-    dendrite_mesh_raw = trimesh.boolean.intersection([neuron_mesh, final_sphere_mesh], engine='manifold')
-
-    parts = dendrite_mesh_raw.split(only_watertight=False)
+    try:
+        dendrite_mesh_raw = trimesh.boolean.intersection([neuron_mesh, final_sphere_mesh], engine='manifold')
+    except:
+        print('Error encountered with the dendritic mesh')
+        return "NaN"
 
     filtered_parts = []
+    parts = dendrite_mesh_raw.split(only_watertight=False)
     for p in parts:
-        sphericity = (np.pi ** (1 / 3)) * ((6 * p.volume) ** (2 / 3)) / p.area
-        if sphericity < 0.7 or p.volume < 5:
-            filtered_parts.append(p)
-        print(sphericity, p.volume)
-
-    print(len(parts))
-    print(len(filtered_parts))
+        if p.volume > 0 and p.area > 0:
+            sphericity = (np.pi ** (1 / 3)) * ((6 * p.volume) ** (2 / 3)) / p.area
+            if sphericity < 0.7 or p.volume < 5:
+                filtered_parts.append(p)
     dendrite_mesh = trimesh.util.concatenate(filtered_parts)
 
     scene = trimesh.Scene()
@@ -133,9 +127,5 @@ def calculate_dendritic_volume(neuron_id, neuron_mesh):
     scene.add_geometry(dendrite_mesh, node_name='dendrite_mesh_split')
     scene.export(f"../data/meshes/dendrite_meshes/{neuron_id}-DEN.obj")
 
-    # Print volumes
-    print(f"Neuron volume: {neuron_mesh.volume:.3f} μm³")
-    print(f"Dendritic raw volume: {dendrite_mesh_raw.volume:.3f} μm³")
-    print(f"Dendritic final volume: {dendrite_mesh.volume:.3f} μm³")
-
+    print('Filtered and calculated the total volume of dendrites')
     return dendrite_mesh.volume

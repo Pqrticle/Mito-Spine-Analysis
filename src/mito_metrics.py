@@ -44,10 +44,10 @@ def find_intersected_volumes(nearby_mito_ids, mito_meshes, base_coord, radius):
                 total_intersected_volume += intersection.volume
                 intersected_volumes.append(intersection.volume)
             else:
-                intersected_volumes.append("NaN")
+                intersected_volumes.append("MeshError")
         else:
-            intersected_volumes.append("NaN")
-    if total_intersected_volume == 0:
+            intersected_volumes.append("MeshError")
+    if "MeshError" in intersected_volumes:
         total_intersected_volume = "NaN"
         mesh_error_count += 1
     synapse_count += 1
@@ -79,7 +79,7 @@ def detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, dsi, radius):
         nearby_vertex_indices = vertex_tree.query_ball_point(base_coord, radius)
         nearby_mito_ids = list(set(vertex_to_mesh_map[idx] for idx in nearby_vertex_indices))
         
-        if nearby_mito_ids:
+        if nearby_mito_ids: 
             intersected_volumes, total_intersected_volume = find_intersected_volumes(nearby_mito_ids, mito_meshes, base_coord, radius)
             spine_base_volumes.append(total_intersected_volume)
             nearby_mito_ids = json.dumps(nearby_mito_ids)
@@ -88,7 +88,7 @@ def detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, dsi, radius):
             intersected_volumes = [0]
             total_intersected_volume = 0
             spine_base_volumes.append(total_intersected_volume)
-            nearby_mito_ids = ["NaN"]
+            nearby_mito_ids = ["NoMito"]
     
         synapse_index = synapse_df[synapse_df['base_coords'].apply(json.loads).apply(lambda x: x == base_coord)].index[0]
         synapse_table.loc[synapse_index, 'mito_ids'] = nearby_mito_ids
@@ -97,6 +97,7 @@ def detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, dsi, radius):
         synapse_table.loc[synapse_index, 'osi_value'] = [osi]
         synapse_table.loc[synapse_index, 'dsi_value'] = [dsi]
 
+    print('Computed all intraneuronal mitochondria volume data')
     dendritic_volume = dendrite_identifier.calculate_dendritic_volume(neuron_id, neuron_mesh)
     mito_volume_data[neuron_id] = [osi, dsi, dendritic_volume, combined_mito_volume, spine_base_volumes]
     with open(f'../data/mito_volume_data_r={radius}.json', 'w') as jsonfile:
@@ -105,6 +106,6 @@ def detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, dsi, radius):
     synapse_table.to_csv(f'../data/synapse_table.csv', index=False)
 
     with open('../data/mesh_error_count.txt', 'w') as f:
-        f.write(f"Synapses with Mitochondria Mesh Error: {mesh_error_count}\n")
+        f.write(f"Synapses with Mitochondria Mesh Errors: {mesh_error_count}\n")
         f.write(f"Total Synapse Count: {synapse_count}\n")
         f.write(f"Rate of Error: {mesh_error_count * 100 / synapse_count}%")

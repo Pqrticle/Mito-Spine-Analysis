@@ -1,6 +1,5 @@
 import guillotine
 import mito_metrics
-import ast
 import selectivity_index
 from meshparty import trimesh_io
 from caveclient import CAVEclient
@@ -17,24 +16,17 @@ def process_neurons(radius):
 
     count = 1
     selectivity_indexes = selectivity_index.get_selectivity_indexes()
-
-    sorted_by_dsi = sorted(selectivity_indexes.items(), key=lambda x: x[1][1])  # x[1][1] is the DSI value
-    lowest_dsi = sorted_by_dsi[:12]
-    highest_dsi = sorted_by_dsi[-12:]
-    target_neurons = lowest_dsi + highest_dsi
-
-    for neuron_id, (osi, dsi) in target_neurons: #selectivity_indexes.items():
-        #if dsi > 0.6 or dsi < 0.06:
-        print(count, neuron_id, dsi)
-        try:
-            neuron_mesh = mm.mesh(seg_id=neuron_id, remove_duplicate_vertices=True)
-            neuron_mesh.add_link_edges(seg_id=neuron_id, client=client.chunkedgraph)
-            neuron_mesh.vertices /= 1000
-            print(f"Neuron mesh loaded: {neuron_mesh.n_vertices} vertices, {neuron_mesh.n_faces} faces")
-            guillotine.snap_spine_bases(neuron_id, neuron_mesh)
-        except ValueError:
-            print(f'No mesh could be found for Neuron SegID: {neuron_id}')
-
+    for neuron_id, (osi, dsi) in selectivity_indexes.items():
+        # Retrieve mesh and find spine base coordinates
+        print('\n')
+        print(f'Neuron ID: {neuron_id} (#{count}/{len(selectivity_indexes)})')
+        neuron_mesh = mm.mesh(seg_id=neuron_id, remove_duplicate_vertices=True)
+        neuron_mesh.add_link_edges(seg_id=neuron_id, client=client.chunkedgraph)
+        neuron_mesh.vertices /= 1000
+        print('Loaded neuron mesh')
+        guillotine.snap_spine_bases(neuron_id, neuron_mesh)
+    
+        #mito stuff
         mito_meshes = mito_metrics.generate_mito_meshes(neuron_id, mito_mm, mito_mesh_dir)
         mito_metrics.detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, dsi, radius)
         count += 1

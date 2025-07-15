@@ -16,4 +16,5 @@ def get_selectivity_indexes():
         if int(seg_id) not in exclude_ids
     }
     
+    print('Processed selectivity indexes')
     return selectivity_indexes
