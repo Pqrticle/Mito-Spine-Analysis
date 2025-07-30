@@ -39,10 +39,6 @@ def export_cleaned_mito_data_to_csv(mito_data, output_path="../data/cleaned_mito
             mito_vol = vals[3]
             synapse_mito_vols = vals[4]
 
-            # Validate numeric entries
-            if any(isinstance(x, str) and x == "NaN" for x in [osi, dsi, dend_vol, mito_vol]):
-                continue
-
             # Compute mito_density
             mito_density = mito_vol / dend_vol if dend_vol != 0 else np.nan
 
