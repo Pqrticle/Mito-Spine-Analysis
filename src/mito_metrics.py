@@ -6,9 +6,6 @@ import trimesh
 import dendrite_identifier
 from scipy.spatial import KDTree
 
-mesh_error_count = 0
-synapse_count = 0
-
 def generate_mito_meshes(neuron_id, mito_mm, mito_mesh_dir):
     raw_mito_data = pd.read_csv('../data/pni_mito_analysisids_fullstats.csv')
     
@@ -31,7 +28,6 @@ def generate_mito_meshes(neuron_id, mito_mm, mito_mesh_dir):
     return mito_meshes
 
 def find_intersected_volumes(nearby_mito_ids, mito_meshes, base_coord, radius):
-    global mesh_error_count, synapse_count
     sphere = trimesh.creation.icosphere(radius)
     sphere.apply_translation(base_coord)
     total_intersected_volume = 0
@@ -49,9 +45,6 @@ def find_intersected_volumes(nearby_mito_ids, mito_meshes, base_coord, radius):
             intersected_volumes.append("MeshError")
     if "MeshError" in intersected_volumes:
         total_intersected_volume = "NaN"
-        mesh_error_count += 1
-    synapse_count += 1
-
     return intersected_volumes, total_intersected_volume
 
 mito_volume_data = {}
@@ -104,8 +97,3 @@ def detect_nearby_mito(neuron_id, neuron_mesh, mito_meshes, osi, dsi, radius):
         json.dump(mito_volume_data, jsonfile, indent=4)
     
     synapse_table.to_csv(f'../data/synapse_table.csv', index=False)
-
-    with open('../data/mesh_error_count.txt', 'w') as f:
-        f.write(f"Synapses with Mitochondria Mesh Errors: {mesh_error_count}\n")
-        f.write(f"Total Synapse Count: {synapse_count}\n")
-        f.write(f"Rate of Error: {mesh_error_count * 100 / synapse_count}%")
